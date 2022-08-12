@@ -1,0 +1,104 @@
+https://www.digitalocean.com/community/tutorials/how-to-set-up-django-with-postgres-nginx-and-gunicorn-on-ubuntu-16-04
+
+https://www.digitalocean.com/community/tutorials/how-to-set-up-django-with-postgres-nginx-and-gunicorn-on-ubuntu-20-04
+
+https://www.youtube.com/watch?v=koo3bF2EPqk&t=26s
+
+https://www.digitalocean.com/community/tutorials/how-to-set-up-django-with-postgres-nginx-and-gunicorn-on-centos-7
+
+
+clone repos to home directory
+apt update
+apt install nginx
+apt install pip
+sudo apt install python-is-python3 && python -m pip install virtualenv
+
+create a new virtual env
+python -m virtualenv ifrs15a-env
+
+activate the env
+source ifrs15a-env/bin/activate
+
+Install requirements
+pip install -r ifrs1.5/requirements.txt
+
+pip install gunicorn
+
+sudo vi /etc/systemd/system/ifrs15.socket
+
+[Unit]
+
+Description=gunicorn socket
+
+[Socket]
+
+ListenStream=/run/ifrs15.sock
+
+[Install]
+
+WantedBy=sockets.target
+
+
+
+
+sudo vi /etc/systemd/system/gunicorn.service
+
+[Unit]
+
+Description=gunicorn daemon
+
+Requires=ifrs15.socket
+
+After=network.target
+
+[Service]
+
+User=isaac
+
+Group=www-data
+
+WorkingDirectory=/home/isaac/ifrs1.5
+
+ExecStart=/home/isaac/ifrs15a-env/bin/gunicorn --workers 3 --bind unix:/run/ifrs15.sock mysite.wsgi:application
+
+[Install]
+
+WantedBy=multi-user.target
+
+
+
+sudo systemctl start ifrs15.socket
+sudo systemctl enable ifrs15.socket
+
+sudo systemctl start ifrs15.service
+sudo systemctl enable ifrs15.service
+
+sudo systemctl status ifrs15.service
+
+
+sudo vi /etc/nginx/sites-available/ifrs
+
+server {
+    listen 80;
+    server_name server_domain_or_IP;
+
+    location = /favicon.ico { access_log off; log_not_found off; }
+    location /static/ {
+        root /home/ifrsuser/ifrs;
+    }
+
+    location / {
+        include proxy_params;
+        proxy_pass http://unix:/run/ifrs15.sock;
+    }
+}
+
+
+sudo ln -s /etc/nginx/sites-available/myproject /etc/nginx/sites-enabled
+https://github.com/philipquansahme/ifrs.git 
+
+pip install -r requirements.txt &&
+sudo python manage.py makemigrations &&
+sudo python manage.py makemigrations ifrs &&
+sudo python manage.py migrate &&
+sudo python manage.py migrate ifrs
